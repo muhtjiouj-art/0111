@@ -1,0 +1,509 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مطعم نجف - Nagaf Restaurants</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        :root { --blue: #18248b; --red: #8c0104; --white: #ffffff; --gray: #f4f4f4; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: var(--gray); overflow-x: hidden; }
+        
+        /* Header & Hero */
+        header { background: linear-gradient(135deg, var(--blue), var(--red)); color: var(--white); padding: 15px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .logo { font-size: 1.5rem; font-weight: bold; border: 2px solid var(--white); padding: 5px 15px; border-radius: 5px; display: flex; align-items: center; gap: 10px; }
+        .hero { background: url('https://source.unsplash.com/1600x900/?restaurant,food') center/cover; height: 250px; display: flex; align-items: center; justify-content: center; position: relative; }
+        .hero::before { content: ''; position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(24, 36, 139, 0.6); }
+        .hero-text { position: relative; color: white; text-align: center; }
+        .hero-text h1 { font-size: 3rem; margin: 0; text-shadow: 2px 2px 5px black; }
+
+        /* User Controls */
+        .user-controls { display: flex; gap: 15px; align-items: center; }
+        .user-name-btn { background: rgba(255,255,255,0.2); padding: 5px 15px; border-radius: 20px; cursor: pointer; transition: 0.3s; display: flex; align-items: center; gap: 5px; }
+        .icon-btn { position: relative; cursor: pointer; transition: transform 0.3s; }
+        .icon-btn:hover { transform: scale(1.1); }
+        .badge { position: absolute; top: -8px; right: -8px; background: var(--white); color: var(--red); border-radius: 50%; padding: 2px 6px; font-size: 0.8rem; font-weight: bold; }
+
+        /* Products */
+        .category-nav { display: flex; justify-content: center; padding: 20px; gap: 10px; flex-wrap: wrap; }
+        .cat-btn { background: var(--white); color: var(--blue); border: 2px solid var(--blue); padding: 8px 20px; border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .cat-btn.active, .cat-btn:hover { background: var(--blue); color: var(--white); }
+
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 15px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+        .card { background: var(--white); border-radius: 10px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.1); border-bottom: 4px solid var(--red); transition: transform 0.3s; }
+        .card:hover { transform: translateY(-5px); }
+        .card img { width: 100%; height: 180px; object-fit: cover; }
+        .card-body { padding: 15px; text-align: center; }
+        .btn { background: var(--blue); color: var(--white); border: none; padding: 10px; width: 100%; margin-top: 10px; cursor: pointer; border-radius: 5px; font-weight: bold; }
+        
+        /* Unavailable Style */
+        .unavailable { filter: grayscale(100%); opacity: 0.8; pointer-events: none; position: relative; }
+        .unavailable::after { content: "غير متوفر"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--red); color: white; padding: 5px 15px; font-weight: bold; border-radius: 5px; border: 2px solid white; }
+
+        /* Modals */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2000; justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .modal-content { background: var(--white); padding: 25px; border-radius: 15px; width: 90%; max-width: 450px; position: relative; border-top: 5px solid var(--red); max-height: 85vh; overflow-y: auto; }
+        .close-btn { position: absolute; top: 15px; left: 15px; cursor: pointer; font-size: 1.5rem; color: var(--red); }
+
+        /* Order History Styles (Sijil) */
+        .order-item { background: #f9f9f9; border: 1px solid #ddd; padding: 15px; margin-bottom: 15px; border-radius: 8px; position: relative; }
+        .status-badge { display: inline-block; padding: 4px 10px; border-radius: 15px; color: white; font-size: 0.85rem; font-weight: bold; }
+        .st-pending { background: orange; }
+        .st-processing { background: var(--blue); }
+        .st-completed { background: green; }
+        .st-cancelled { background: var(--red); }
+        
+        .cancel-btn { background: var(--red); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.9rem; margin-top: 10px; }
+        .cancel-pending { color: var(--red); font-weight: bold; margin-top: 10px; display: block; font-size: 0.9rem; }
+        .rejection-reason { color: var(--red); font-weight: bold; font-size: 0.9rem; margin-top: 8px; background: #fff0f0; padding: 5px; border-radius: 4px; border: 1px solid #ffcccc; }
+
+        /* Chat */
+        .chat-float-btn { position: fixed; bottom: 20px; left: 20px; background: var(--blue); color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 2500; border: 2px solid var(--red); }
+        .chat-window { display: none; position: fixed; bottom: 90px; left: 20px; width: 320px; height: 400px; background: white; border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); z-index: 2500; flex-direction: column; border: 2px solid var(--blue); }
+        .chat-body { flex: 1; padding: 10px; overflow-y: auto; background: #f9f9f9; display: flex; flex-direction: column; gap: 8px; }
+        .msg { padding: 8px 12px; border-radius: 10px; max-width: 80%; font-size: 0.9rem; }
+        .msg-me { align-self: flex-start; background: var(--blue); color: white; }
+        .msg-admin { align-self: flex-end; background: #ddd; color: black; }
+
+        /* Chat Notification & Animation */
+        .chat-notify-badge { position: absolute; top: -5px; right: -5px; background: red; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; display: flex; justify-content: center; align-items: center; border: 2px solid white; display: none; }
+        .shake-anim { animation: shake 0.5s infinite; }
+        @keyframes shake { 0% { transform: rotate(0deg); } 25% { transform: rotate(10deg); } 50% { transform: rotate(0deg); } 75% { transform: rotate(-10deg); } 100% { transform: rotate(0deg); } }
+
+        input, select { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        
+        /* Variants */
+        .variant-option { padding: 10px; border: 1px solid #ddd; margin: 5px 0; border-radius: 5px; cursor: pointer; display: flex; justify-content: space-between; }
+        .variant-option.selected { border-color: var(--red); background: #fff0f0; }
+
+    </style>
+</head>
+<body>
+
+    <audio id="msgSound" src="https://assets.mixkit.co/active_storage/sfx/2346/2346-preview.mp3"></audio>
+
+    <header>
+        <div class="logo">
+            <i class="fas fa-utensils"></i> نجف | NAGAF
+        </div>
+        <div class="user-controls">
+            <!-- تسجيل الدخول -->
+            <div id="authBtns"><button class="btn" style="padding:5px 15px; width:auto; background:white; color:var(--blue);" onclick="openAuth()">دخول</button></div>
+            
+            <!-- معلومات المستخدم (بعد الدخول) -->
+            <div id="userInfo" style="display:none; gap:10px; align-items:center;">
+                <div class="user-name-btn" onclick="openProfile()">
+                    <i class="fas fa-user-circle"></i> <span id="uName"></span>
+                </div>
+                <div class="icon-btn" onclick="openMyOrders()" title="سجل طلباتي">
+                    <i class="fas fa-clipboard-list fa-lg"></i>
+                </div>
+            </div>
+
+            <div class="icon-btn" onclick="openCart()"><i class="fas fa-shopping-cart fa-lg"></i> <span class="badge" id="cartCount">0</span></div>
+        </div>
+    </header>
+
+    <div class="hero">
+        <div class="hero-text">
+            <h1>أصل الأكل المصري</h1>
+            <p>أطلب واستمتع بالطعم الأصلي</p>
+        </div>
+    </div>
+
+    <div class="category-nav" id="categoryNav"></div>
+    <div class="container"><div class="grid" id="productGrid"></div></div>
+
+    <!-- Product Options Modal -->
+    <div class="modal" id="optionsModal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('optionsModal')">&times;</span>
+            <h3 id="optProdName" style="color:var(--blue); text-align:center;"></h3>
+            <div id="variantsList"></div>
+            <h4 style="text-align:center; color:var(--red);">السعر: <span id="selectedPrice">0</span> جنيه</h4>
+            <button class="btn" onclick="confirmAddToCart()">تأكيد الإضافة</button>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div class="modal" id="authModal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('authModal')">&times;</span>
+            <h2 style="text-align:center; color:var(--blue);">تسجيل الدخول</h2>
+            <form onsubmit="handleLogin(event)">
+                <input type="email" id="loginEmail" placeholder="البريد الإلكتروني" required>
+                <input type="password" id="loginPass" placeholder="كلمة المرور" required>
+                <button class="btn">دخول</button>
+            </form>
+            <p style="text-align:center; cursor:pointer; color:var(--red);" onclick="toggleReg()">ليس لديك حساب؟ سجل الآن</p>
+            <form id="regForm" style="display:none;" onsubmit="handleReg(event)">
+                <input type="text" id="regName" placeholder="الاسم" required>
+                <input type="tel" id="regPhone" placeholder="رقم الهاتف" required>
+                <select id="regArea" required>
+                    <option value="" disabled selected>اختر المنطقة</option>
+                    <option value="المعادي">المعادي</option>
+                    <option value="مدينة نصر">مدينة نصر</option>
+                    <option value="مصر الجديدة">مصر الجديدة</option>
+                    <option value="وسط البلد">وسط البلد</option>
+                    <option value="أكتوبر">6 أكتوبر (خارج النطاق)</option>
+                    <option value="التجمع">التجمع (خارج النطاق)</option>
+                </select>
+                <input type="text" id="regAddress" placeholder="اسم الشارع ورقم العقار" required>
+                <button class="btn" style="background:var(--red);">تسجيل جديد</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div class="modal" id="profileModal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('profileModal')">&times;</span>
+            <h2 style="text-align:center;">الملف الشخصي</h2>
+            <p><strong>الاسم:</strong> <span id="profName"></span></p>
+            <p><strong>الهاتف:</strong> <span id="profPhone"></span></p>
+            <p><strong>المنطقة:</strong> <span id="profArea"></span></p>
+            <p><strong>العنوان:</strong> <span id="profAddress"></span></p>
+            <button class="btn" style="background:var(--red);" onclick="logout()">تسجيل الخروج</button>
+        </div>
+    </div>
+
+    <!-- My Orders Modal (السجل) -->
+    <div class="modal" id="ordersModal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('ordersModal')">&times;</span>
+            <h2 style="text-align:center; color:var(--blue); border-bottom:2px solid var(--red); padding-bottom:10px;">سجل طلباتي</h2>
+            <div id="ordersList"></div>
+            <button class="btn" style="background:#555; margin-top:10px;" onclick="renderMyOrders()">تحديث الحالة <i class="fas fa-sync"></i></button>
+        </div>
+    </div>
+
+    <!-- Cart Modal -->
+    <div class="modal" id="cartModal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal('cartModal')">&times;</span>
+            <h2 style="color:var(--blue);">سلة المشتريات</h2>
+            <div id="cartItems"></div>
+            <h3>الإجمالي: <span id="cartTotal">0</span> ج</h3>
+            <button class="btn" onclick="submitOrder()">إرسال الطلب</button>
+        </div>
+    </div>
+
+    <!-- Chat Widget with Notifications -->
+    <div class="chat-float-btn" id="chatBtn" onclick="toggleChat()">
+        <i class="fas fa-comments"></i>
+        <div class="chat-notify-badge" id="chatBadge">0</div>
+    </div>
+
+    <div class="chat-window" id="chatWindow">
+        <div style="background:var(--blue); color:white; padding:10px; display:flex; justify-content:space-between;">
+            <span>خدمة العملاء</span><span onclick="toggleChat()" style="cursor:pointer;">✖</span>
+        </div>
+        <div class="chat-body" id="chatBody"></div>
+        <div style="padding:10px; border-top:1px solid #ddd; display:flex;">
+            <input type="text" id="chatInput" placeholder="اكتب رسالتك..." style="margin:0; flex:1;">
+            <button onclick="sendChat()" style="background:var(--red); color:white; border:none; padding:0 15px; margin-right:5px; border-radius:5px;"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <script>
+        let cart = [];
+        let currentUser = JSON.parse(localStorage.getItem('nagaf_current_user'));
+        let selectedProductTemp = null;
+        let selectedVariantTemp = null;
+        
+        // Chat Variables
+        let lastChatLength = 0;
+        let unreadMessages = 0;
+        let isChatOpen = false;
+
+        // Zones Configuration
+        const VALID_ZONES = ['المعادي', 'مدينة نصر', 'مصر الجديدة', 'وسط البلد'];
+        const BLOCKED_ZONES = ['أكتوبر', 'التجمع'];
+
+        // --- Load Products ---
+        function loadData(cat = 'all') {
+            const products = JSON.parse(localStorage.getItem('nagaf_products')) || [];
+            const grid = document.getElementById('productGrid');
+            grid.innerHTML = '';
+            
+            products.forEach(p => {
+                if(cat === 'all' || p.cat === cat) {
+                    const minPrice = p.variants && p.variants.length ? Math.min(...p.variants.map(v=>v.price)) : 0;
+                    grid.innerHTML += `
+                        <div class="card ${!p.available ? 'unavailable' : ''}">
+                            <img src="${p.img}" alt="${p.name}">
+                            <div class="card-body">
+                                <h3>${p.name}</h3>
+                                <p>يبدأ من ${minPrice} جنيه</p>
+                                <button class="btn" ${!p.available ? 'disabled' : `onclick="openOptions(${p.id})"`}>
+                                    ${!p.available ? 'مغلق' : 'أطلب الآن'}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+        }
+
+        // --- Categories ---
+        const cats = JSON.parse(localStorage.getItem('nagaf_categories_tree')) || [];
+        const nav = document.getElementById('categoryNav');
+        nav.innerHTML = '<button class="cat-btn active" onclick="loadData(\'all\')">الكل</button>';
+        cats.forEach(c => nav.innerHTML += `<button class="cat-btn" onclick="loadData('${c.name}')">${c.name}</button>`);
+
+        // --- Auth & User ---
+        function checkUser() {
+            if(currentUser) { 
+                document.getElementById('authBtns').style.display = 'none'; 
+                document.getElementById('userInfo').style.display = 'flex';
+                document.getElementById('uName').innerText = currentUser.name.split(' ')[0];
+                document.getElementById('profName').innerText = currentUser.name;
+                document.getElementById('profPhone').innerText = currentUser.phone;
+                document.getElementById('profArea').innerText = currentUser.area || 'غير محدد';
+                document.getElementById('profAddress').innerText = currentUser.address;
+                
+                // Initialize chat count
+                const chats = JSON.parse(localStorage.getItem('nagaf_chats')) || {};
+                const msgs = chats[currentUser.phone] || [];
+                lastChatLength = msgs.length;
+            }
+        }
+        function openAuth() { document.getElementById('authModal').style.display = 'flex'; }
+        function openProfile() { document.getElementById('profileModal').style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+        function logout() { localStorage.removeItem('nagaf_current_user'); location.reload(); }
+        
+        function handleLogin(e) { 
+            e.preventDefault(); 
+            const users = JSON.parse(localStorage.getItem('nagaf_customers_db')) || [];
+            const email = document.getElementById('loginEmail').value;
+            const u = users.find(u => u.email === email);
+            if(u) { currentUser = u; localStorage.setItem('nagaf_current_user', JSON.stringify(u)); checkUser(); closeModal('authModal'); }
+            else alert('غير مسجل');
+        }
+        function handleReg(e) {
+            e.preventDefault();
+            const area = document.getElementById('regArea').value;
+            if(!area) return alert('يرجى اختيار المنطقة');
+
+            const u = { 
+                name: document.getElementById('regName').value, 
+                phone: document.getElementById('regPhone').value, 
+                area: area,
+                address: document.getElementById('regAddress').value, 
+                email: document.getElementById('loginEmail').value 
+            };
+            let users = JSON.parse(localStorage.getItem('nagaf_customers_db')) || [];
+            users.push(u); localStorage.setItem('nagaf_customers_db', JSON.stringify(users));
+            currentUser = u; localStorage.setItem('nagaf_current_user', JSON.stringify(u));
+            checkUser(); closeModal('authModal');
+        }
+        function toggleReg() { document.getElementById('regForm').style.display = 'block'; }
+
+        // --- Cart & Order ---
+        function openOptions(id) {
+            const products = JSON.parse(localStorage.getItem('nagaf_products'));
+            selectedProductTemp = products.find(p => p.id === id);
+            document.getElementById('optProdName').innerText = selectedProductTemp.name;
+            const list = document.getElementById('variantsList');
+            list.innerHTML = '';
+            selectedProductTemp.variants.forEach((v, index) => {
+                list.innerHTML += `<div class="variant-option" id="var-${index}" onclick="selectVariant(${index})"><span>${v.bread} - ${v.size}</span><span style="color:var(--red); font-weight:bold;">${v.price} ج</span></div>`;
+            });
+            selectVariant(0);
+            document.getElementById('optionsModal').style.display = 'flex';
+        }
+        function selectVariant(index) {
+            document.querySelectorAll('.variant-option').forEach(el => el.classList.remove('selected'));
+            document.getElementById(`var-${index}`).classList.add('selected');
+            selectedVariantTemp = selectedProductTemp.variants[index];
+            document.getElementById('selectedPrice').innerText = selectedVariantTemp.price;
+        }
+        function confirmAddToCart() {
+            if(!currentUser) { closeModal('optionsModal'); return openAuth(); }
+            cart.push({ ...selectedProductTemp, variant: selectedVariantTemp, uid: Date.now() });
+            updateCart(); closeModal('optionsModal');
+        }
+        function updateCart() {
+            document.getElementById('cartCount').innerText = cart.length;
+            const div = document.getElementById('cartItems');
+            let total = 0;
+            div.innerHTML = cart.map((item, i) => {
+                total += item.variant.price;
+                return `<div style="display:flex; justify-content:space-between; padding:5px; border-bottom:1px solid #eee;">
+                    <div>${item.name} (${item.variant.bread})</div>
+                    <div>${item.variant.price} ج <span style="color:red; cursor:pointer;" onclick="cart.splice(${i},1);updateCart()">x</span></div>
+                </div>`;
+            }).join('');
+            document.getElementById('cartTotal').innerText = total;
+        }
+        function openCart() { if(!currentUser) return openAuth(); document.getElementById('cartModal').style.display = 'flex'; }
+        
+        function submitOrder() {
+            if(!cart.length) return alert('السلة فارغة');
+            
+            // --- Zone Logic Check ---
+            const userArea = currentUser.area;
+            if(BLOCKED_ZONES.includes(userArea)) {
+                alert('عذراً، هذه المنطقة خارج نطاق التوصيل حالياً.');
+                return;
+            }
+            if(!VALID_ZONES.includes(userArea)) {
+                if(!confirm('منطقتك قد تكون بعيدة قليلاً، هل تريد المتابعة وانتظار تأكيد المطعم؟')) return;
+            }
+
+            const order = { 
+                id: Date.now(), 
+                customer: currentUser, 
+                items: cart, 
+                total: parseInt(document.getElementById('cartTotal').innerText), 
+                status: 'pending', 
+                cancelRequest: false, 
+                cancelReason: '',
+                rejectionReason: '',
+                timestamp: Date.now(), 
+                dateStr: new Date().toLocaleString('ar-EG') 
+            };
+            let orders = JSON.parse(localStorage.getItem('nagaf_orders')) || [];
+            orders.push(order); localStorage.setItem('nagaf_orders', JSON.stringify(orders));
+            cart = []; updateCart(); closeModal('cartModal'); alert('تم الإرسال بنجاح! تابع طلبك في السجل.');
+            openMyOrders();
+        }
+
+        // --- My Orders (Sijil) Logic ---
+        function openMyOrders() {
+            if(!currentUser) return openAuth();
+            renderMyOrders();
+            document.getElementById('ordersModal').style.display = 'flex';
+        }
+
+        function renderMyOrders() {
+            const all = JSON.parse(localStorage.getItem('nagaf_orders')) || [];
+            const myOrders = all.filter(o => o.customer.email === currentUser.email).reverse();
+            
+            const list = document.getElementById('ordersList');
+            if(myOrders.length === 0) { list.innerHTML = '<p style="text-align:center;">لا توجد طلبات</p>'; return; }
+
+            list.innerHTML = myOrders.map(o => {
+                let badge = 'st-pending', txt = 'انتظار التأكيد';
+                if(o.status === 'processing') { badge = 'st-processing'; txt = 'جاري التحضير'; }
+                if(o.status === 'completed') { badge = 'st-completed'; txt = 'مكتمل'; }
+                if(o.status === 'cancelled') { badge = 'st-cancelled'; txt = 'ملغي'; }
+
+                let action = '';
+                let rejectionInfo = '';
+
+                // Show Rejection Reason if Cancelled
+                if(o.status === 'cancelled' && o.rejectionReason) {
+                    rejectionInfo = `<div class="rejection-reason">سبب الرفض: ${o.rejectionReason}</div>`;
+                }
+
+                if(o.status !== 'completed' && o.status !== 'cancelled') {
+                    if(o.cancelRequest) {
+                        action = '<span class="cancel-pending">جاري طلب الإلغاء...</span>';
+                    } else {
+                        action = `<button class="cancel-btn" onclick="requestCancel(${o.id})">إلغاء الطلب</button>`;
+                    }
+                }
+
+                return `
+                    <div class="order-item">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <strong>#${o.id.toString().slice(-4)}</strong>
+                            <span class="status-badge ${badge}">${txt}</span>
+                        </div>
+                        <div style="color:#666; font-size:0.9rem; margin:5px 0;">${o.dateStr}</div>
+                        <div>${o.items.map(i=>i.name).join(', ')}</div>
+                        <div style="margin-top:5px; font-weight:bold;">${o.total} جنيه</div>
+                        ${rejectionInfo}
+                        ${action}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function requestCancel(id) {
+            const reason = prompt("ما هو سبب الإلغاء؟ (اكتب هنا)");
+            if(reason !== null) { 
+                let orders = JSON.parse(localStorage.getItem('nagaf_orders'));
+                let o = orders.find(x => x.id === id);
+                if(o) {
+                    o.cancelRequest = true;
+                    o.cancelReason = reason; 
+                    localStorage.setItem('nagaf_orders', JSON.stringify(orders));
+                    renderMyOrders();
+                    alert('تم إرسال طلب الإلغاء والسبب للمطعم.');
+                }
+            }
+        }
+
+        // --- Chat & Notification Logic ---
+        function toggleChat() {
+            if(!currentUser) return openAuth();
+            const w = document.getElementById('chatWindow');
+            isChatOpen = !isChatOpen;
+            
+            if(isChatOpen) {
+                w.style.display = 'flex';
+                // Reset Notifications when opened
+                unreadMessages = 0;
+                document.getElementById('chatBadge').style.display = 'none';
+                document.getElementById('chatBtn').classList.remove('shake-anim');
+                loadChat();
+            } else {
+                w.style.display = 'none';
+            }
+        }
+
+        function sendChat() {
+            const txt = document.getElementById('chatInput').value;
+            if(!txt) return;
+            let chats = JSON.parse(localStorage.getItem('nagaf_chats')) || {};
+            if(!chats[currentUser.phone]) chats[currentUser.phone] = [];
+            chats[currentUser.phone].push({ sender: 'customer', text: txt });
+            localStorage.setItem('nagaf_chats', JSON.stringify(chats));
+            document.getElementById('chatInput').value = ''; 
+            loadChat();
+            lastChatLength = chats[currentUser.phone].length; // Update so we don't notify for our own msg
+        }
+
+        function loadChat() {
+            if(!currentUser) return;
+            const chats = JSON.parse(localStorage.getItem('nagaf_chats')) || {};
+            const msgs = chats[currentUser.phone] || [];
+            document.getElementById('chatBody').innerHTML = msgs.map(m => `<div class="msg ${m.sender==='customer'?'msg-me':'msg-admin'}">${m.text}</div>`).join('');
+            
+            // Notification Logic
+            if(msgs.length > lastChatLength) {
+                const lastMsg = msgs[msgs.length - 1];
+                
+                // Only notify if message is from Admin AND chat window is CLOSED
+                if(lastMsg.sender === 'admin') {
+                    if(!isChatOpen) {
+                        document.getElementById('msgSound').play().catch(()=>{});
+                        unreadMessages++;
+                        const badge = document.getElementById('chatBadge');
+                        badge.innerText = unreadMessages;
+                        badge.style.display = 'flex';
+                        document.getElementById('chatBtn').classList.add('shake-anim');
+                    } else {
+                        // If open, just play sound maybe?
+                        document.getElementById('msgSound').play().catch(()=>{});
+                    }
+                }
+                lastChatLength = msgs.length;
+            }
+        }
+
+        // Check for messages every 2 seconds
+        setInterval(() => { if(currentUser) loadChat(); }, 2000);
+
+        checkUser();
+        loadData();
+    </script>
+</body>
+</html>
+```
