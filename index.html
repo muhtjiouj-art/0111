@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مطعم نجف - طلب أونلاين</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; background: #f8f9fa; }
+        header { background: #8c0104; color: white; padding: 15px; text-align: center; font-size: 1.5rem; }
+        .menu { padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; }
+        .item { background: white; padding: 15px; border-radius: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .btn { background: #18248b; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; width: 100%; margin-top: 5px; }
+        
+        /* سلة الشراء */
+        .cart-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: white; border-top: 2px solid #8c0104; padding: 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); display: none; }
+        input { width: 90%; padding: 10px; margin: 5px 0; border: 1px solid #ccc; border-radius: 5px; }
+    </style>
+</head>
+<body>
+
+    <header>مطعم نجف 🍗</header>
+
+    <div class="menu">
+        <!-- منتجات تجريبية -->
+        <div class="item">
+            <h3>شاورما سوري</h3>
+            <p>60 ج.م</p>
+            <button class="btn" onclick="addToCart('شاورما سوري', 60)">إضافة للسلة</button>
+        </div>
+        <div class="item">
+            <h3>فتة شاورما</h3>
+            <p>85 ج.م</p>
+            <button class="btn" onclick="addToCart('فتة شاورما', 85)">إضافة للسلة</button>
+        </div>
+        <div class="item">
+            <h3>برجر نجف</h3>
+            <p>90 ج.م</p>
+            <button class="btn" onclick="addToCart('برجر نجف', 90)">إضافة للسلة</button>
+        </div>
+    </div>
+
+    <!-- شريط إتمام الطلب -->
+    <div class="cart-bar" id="cartBar">
+        <h3 style="margin:0 0 10px 0;">سلة الشراء (<span id="totalPrice">0</span> ج.م)</h3>
+        <div id="cartItems" style="font-size:0.9em; color:#555; margin-bottom:10px;"></div>
+        
+        <div id="customerForm">
+            <input type="text" id="cName" placeholder="الاسم">
+            <input type="tel" id="cPhone" placeholder="رقم الهاتف">
+            <input type="text" id="cAddress" placeholder="العنوان بالتفصيل">
+            <button class="btn" style="background:#27ae60; font-weight:bold; font-size:1.1em;" onclick="sendOrder()">تأكيد الطلب الآن</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, push, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // نفس بياناتك بالظبط
+        const firebaseConfig = {
+            apiKey: "AIzaSyAaf3l8VFttOCruK9jZczBsi1eBwg2U5yE",
+            authDomain: "nagaf-f9b1c.firebaseapp.com",
+            projectId: "nagaf-f9b1c",
+            storageBucket: "nagaf-f9b1c.firebasestorage.app",
+            messagingSenderId: "840123927886",
+            appId: "1:840123927886:web:c6baad7f059cfab461e21f",
+            measurementId: "G-7JR7X16M2N",
+            databaseURL: "https://nagaf-f9b1c-default-rtdb.firebaseio.com"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // منطق سلة الشراء البسيط
+        let cart = [];
+        
+        window.addToCart = function(item, price) {
+            cart.push({item, price});
+            updateCartUI();
+        }
+
+        function updateCartUI() {
+            if(cart.length > 0) document.getElementById('cartBar').style.display = 'block';
+            
+            const total = cart.reduce((sum, i) => sum + i.price, 0);
+            document.getElementById('totalPrice').innerText = total;
+            document.getElementById('cartItems').innerText = cart.map(i => i.item).join(', ');
+        }
+
+        window.sendOrder = function() {
+            const name = document.getElementById('cName').value;
+            const phone = document.getElementById('cPhone').value;
+            const address = document.getElementById('cAddress').value;
+
+            if(!name || !phone || !address) {
+                alert('يرجى ملء جميع البيانات (الاسم، الهاتف، العنوان)');
+                return;
+            }
+
+            const orderRef = ref(db, 'orders');
+            const newOrderRef = push(orderRef);
+            
+            set(newOrderRef, {
+                name: name,
+                phone: phone,
+                address: address,
+                cart: cart,
+                total: cart.reduce((sum, i) => sum + i.price, 0),
+                status: 'new', // حالة الطلب
+                timestamp: Date.now()
+            }).then(() => {
+                alert('تم إرسال طلبك بنجاح! سيتم التواصل معك.');
+                location.reload();
+            }).catch((error) => {
+                alert('حدث خطأ: ' + error.message);
+                console.error(error);
+            });
+        }
+    </script>
+</body>
+</html>
