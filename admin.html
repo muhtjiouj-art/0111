@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لوحة تحكم نجف - أونلاين</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f4f4f4; }
+        .header { background: #18248b; color: white; padding: 15px; text-align: center; }
+        .container { padding: 20px; display: flex; gap: 20px; flex-wrap: wrap; }
+        .col { flex: 1; min-width: 300px; background: white; padding: 15px; border-radius: 8px; height: 80vh; overflow-y: auto; }
+        .card { border: 1px solid #ddd; margin-bottom: 10px; padding: 10px; border-radius: 5px; cursor: pointer; border-left: 5px solid #18248b; }
+        .card:hover { background: #f9f9f9; }
+        .new-badge { background: red; color: white; padding: 2px 5px; border-radius: 3px; font-size: 0.8em; }
+        button { padding: 5px 10px; cursor: pointer; margin-top: 5px; }
+        .btn-accept { background: #27ae60; color: white; border: none; }
+        .btn-reject { background: #c0392b; color: white; border: none; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h2>👨‍🍳 لوحة تحكم المطعم (مربوطة بـ Firebase)</h2>
+    </div>
+
+    <div class="container">
+        <!-- New Orders -->
+        <div class="col">
+            <h3 style="color:#c0392b; border-bottom: 2px solid #c0392b;">🔔 طلبات جديدة</h3>
+            <div id="newOrders">جاري الاتصال بالقاعدة...</div>
+        </div>
+
+        <!-- Processing -->
+        <div class="col">
+            <h3 style="color:#18248b; border-bottom: 2px solid #18248b;">🍳 جاري التحضير</h3>
+            <div id="processingOrders"></div>
+        </div>
+        
+        <!-- History -->
+        <div class="col">
+            <h3 style="color:green; border-bottom: 2px solid green;">✅ سجل المكتمل</h3>
+            <div id="completedOrders"></div>
+        </div>
+    </div>
+
+    <!-- Firebase Script -->
+    <script type="module">
+        // استدعاء المكتبات عبر الانترنت (بديل npm)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        // بياناتك التي ارسلتها
+        const firebaseConfig = {
+            apiKey: "AIzaSyAaf3l8VFttOCruK9jZczBsi1eBwg2U5yE",
+            authDomain: "nagaf-f9b1c.firebaseapp.com",
+            projectId: "nagaf-f9b1c",
+            storageBucket: "nagaf-f9b1c.firebasestorage.app",
+            messagingSenderId: "840123927886",
+            appId: "1:840123927886:web:c6baad7f059cfab461e21f",
+            measurementId: "G-7JR7X16M2N",
+            // ملاحظة: تم اضافة رابط الداتابيز الافتراضي بناءً على اسم مشروعك
+            databaseURL: "https://nagaf-f9b1c-default-rtdb.firebaseio.com" 
+        };
+
+        // تشغيل فايربيس
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // الاستماع للطلبات في الوقت الفعلي
+        const ordersRef = ref(db, 'orders');
+        
+        onValue(ordersRef, (snapshot) => {
+            const data = snapshot.val();
+            const newDiv = document.getElementById('newOrders');
+            const procDiv = document.getElementById('processingOrders');
+            const compDiv = document.getElementById('completedOrders');
+
+            newDiv.innerHTML = ''; procDiv.innerHTML = ''; compDiv.innerHTML = '';
+
+            if (!data) {
+                newDiv.innerHTML = '<p>لا توجد طلبات حالياً</p>';
+                return;
+            }
+
+            // تحويل البيانات لمصفوفة وعكسها (لإظهار الأحدث أولاً)
+            Object.keys(data).reverse().forEach(key => {
+                const order = data[key];
+                const card = createCard(key, order);
+                
+                if (order.status === 'new') newDiv.innerHTML += card;
+                else if (order.status === 'processing') procDiv.innerHTML += card;
+                else if (order.status === 'completed') compDiv.innerHTML += card;
+            });
+        });
+
+        // دالة رسم الكارت
+        function createCard(key, order) {
+            let actions = '';
+            if(order.status === 'new') {
+                actions = `<button class="btn-accept" onclick="updateSt('${key}', 'processing')">قبول وتجهيز</button>
+                           <button class="btn-reject" onclick="updateSt('${key}', 'cancelled')">رفض</button>`;
+            } else if (order.status === 'processing') {
+                actions = `<button class="btn-accept" style="background:#18248b" onclick="updateSt('${key}', 'completed')">تم التسليم</button>`;
+            }
+
+            let itemsHtml = order.cart.map(i => `<div>- ${i.item} (${i.price}ج)</div>`).join('');
+
+            return `
+            <div class="card">
+                <div style="font-weight:bold; font-size:1.1em">${order.name} <span style="float:left">${order.total} ج</span></div>
+                <div style="color:#666; font-size:0.9em">${order.phone} - ${order.address}</div>
+                <hr style="opacity:0.3">
+                <div style="font-size:0.9em">${itemsHtml}</div>
+                <div style="margin-top:10px">${actions}</div>
+            </div>`;
+        }
+
+        // جعل الدالة متاحة في HTML
+        window.updateSt = function(key, newStatus) {
+            update(ref(db, 'orders/' + key), { status: newStatus });
+        };
+    </script>
+</body>
+</html>
